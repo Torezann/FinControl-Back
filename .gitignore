@@ -24,7 +24,6 @@ wwwroot/dist/
 # Environment / secrets
 appsettings.*.json
 !appsettings.json
-!appsettings.Development.json
 *.env
 .env
 .env.*
