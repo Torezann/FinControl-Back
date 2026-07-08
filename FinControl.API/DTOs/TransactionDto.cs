@@ -2,9 +2,19 @@ using FinControl.API.Models;
 
 namespace FinControl.API.DTOs;
 
+public record TransactionDto(
+    Guid Id,
+    DateOnly Data,
+    TransactionType Tipo,
+    decimal Valor,
+    string Categoria,
+    string Descricao
+);
+
 public record CreateTransactionDto(
-    string Description,
-    decimal Amount,
-    DateTime Date,
-    TransactionType Type
+    TransactionType Tipo,
+    decimal Valor,
+    string Categoria,
+    string Descricao,
+    DateOnly Data
 );

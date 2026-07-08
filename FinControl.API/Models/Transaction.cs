@@ -2,15 +2,17 @@ namespace FinControl.API.Models;
 
 public class Transaction
 {
-    public int Id { get; set; }
-    public string Description { get; set; } = string.Empty;
-    public decimal Amount { get; set; }
-    public DateTime Date { get; set; }
-    public TransactionType Type { get; set; }
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public DateOnly Data { get; set; }
+    public TransactionType Tipo { get; set; }
+    public decimal Valor { get; set; }
+    public string Categoria { get; set; } = string.Empty;
+    public string Descricao { get; set; } = string.Empty;
 }
 
 public enum TransactionType
 {
-    Income,
-    Expense
+    Receita,
+    Gasto
 }

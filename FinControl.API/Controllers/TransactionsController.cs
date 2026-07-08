@@ -1,66 +1,69 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FinControl.API.Data;
 using FinControl.API.DTOs;
+using FinControl.API.Extensions;
 using FinControl.API.Models;
 
 namespace FinControl.API.Controllers;
 
+[Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/transactions")]
 public class TransactionsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? month)
     {
-        var transactions = await db.Transactions.ToListAsync();
-        return Ok(transactions);
-    }
+        var userId = this.GetUserId();
+        var query = db.Transactions.Where(t => t.UserId == userId);
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var transaction = await db.Transactions.FindAsync(id);
-        if (transaction is null) return NotFound();
-        return Ok(transaction);
+        if (!string.IsNullOrWhiteSpace(month))
+        {
+            if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var monthStart))
+                return Problem(title: "Formato de mês inválido, use yyyy-MM", statusCode: StatusCodes.Status400BadRequest);
+
+            var monthEnd = monthStart.AddMonths(1);
+            query = query.Where(t => t.Data >= monthStart && t.Data < monthEnd);
+        }
+
+        var transactions = await query
+            .Select(t => new TransactionDto(t.Id, t.Data, t.Tipo, t.Valor, t.Categoria, t.Descricao))
+            .ToListAsync();
+
+        return Ok(transactions);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(CreateTransactionDto dto)
     {
+        if (dto.Valor <= 0)
+            return Problem(title: "Valor deve ser maior que zero", statusCode: StatusCodes.Status400BadRequest);
+
         var transaction = new Transaction
         {
-            Description = dto.Description,
-            Amount = dto.Amount,
-            Date = dto.Date,
-            Type = dto.Type
+            Id = Guid.NewGuid(),
+            UserId = this.GetUserId(),
+            Data = dto.Data,
+            Tipo = dto.Tipo,
+            Valor = dto.Valor,
+            Categoria = dto.Categoria,
+            Descricao = dto.Descricao
         };
 
         db.Transactions.Add(transaction);
         await db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = transaction.Id }, transaction);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, CreateTransactionDto dto)
-    {
-        var transaction = await db.Transactions.FindAsync(id);
-        if (transaction is null) return NotFound();
-
-        transaction.Description = dto.Description;
-        transaction.Amount = dto.Amount;
-        transaction.Date = dto.Date;
-        transaction.Type = dto.Type;
-
-        await db.SaveChangesAsync();
-        return Ok(transaction);
+        var result = new TransactionDto(transaction.Id, transaction.Data, transaction.Tipo, transaction.Valor, transaction.Categoria, transaction.Descricao);
+        return CreatedAtAction(nameof(GetAll), new { }, result);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
-        var transaction = await db.Transactions.FindAsync(id);
+        var userId = this.GetUserId();
+        var transaction = await db.Transactions.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
         if (transaction is null) return NotFound();
 
         db.Transactions.Remove(transaction);
