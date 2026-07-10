@@ -6,7 +6,7 @@ using FinControl.API.Models;
 namespace FinControl.API.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options)
-    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
+    : IdentityUserContext<ApplicationUser, Guid>(options)
 {
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Goal> Goals { get; set; }
@@ -24,5 +24,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Category>()
             .HasIndex(c => new { c.UserId, c.Nome })
             .IsUnique();
+
+        builder.Entity<Transaction>().ToTable("tb_transacoes");
+        builder.Entity<Goal>().ToTable("tb_metas");
+        builder.Entity<BudgetLimit>().ToTable("tb_limites_orcamento");
+        builder.Entity<Category>().ToTable("tb_categorias");
+
+        builder.Entity<ApplicationUser>().ToTable("tb_usuarios");
+        builder.Entity<IdentityUserClaim<Guid>>().ToTable("tb_usuario_claims");
+        builder.Entity<IdentityUserToken<Guid>>().ToTable("tb_usuario_tokens");
+
+        builder.Ignore<IdentityUserLogin<Guid>>();
     }
 }

@@ -61,7 +61,6 @@ builder.Services
     {
         options.Password.RequiredLength = 8;
     })
-    .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddScoped<JwtTokenService>();
